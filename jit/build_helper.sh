@@ -25,6 +25,20 @@ xcodebuild archive -project "$SOURCE/StikJIT.xcodeproj" -scheme StikJIT \
 
 FRAMEWORK="$SCRATCH/StikJIT.xcarchive/Products/Library/Frameworks/StikJIT.framework"
 [[ -d "$FRAMEWORK" ]] || { echo 'StikJIT.framework was not archived' >&2; exit 1; }
+if [[ ! -f "$FRAMEWORK/Info.plist" ]]; then
+    cat > "$FRAMEWORK/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleExecutable</key><string>StikJIT</string>
+  <key>CFBundleIdentifier</key><string>com.stik.StikJIT</string>
+  <key>CFBundleName</key><string>StikJIT</string>
+  <key>CFBundlePackageType</key><string>FMWK</string>
+  <key>CFBundleShortVersionString</key><string>2.0.1</string>
+  <key>CFBundleVersion</key><string>12</string>
+</dict></plist>
+PLIST
+fi
 mkdir -p "$ROOT/jit/Frameworks" "$APP/Frameworks" "$APP/PlugIns"
 cp -R "$FRAMEWORK" "$ROOT/jit/Frameworks/"
 (cd "$ROOT/jit" && xcodegen generate)

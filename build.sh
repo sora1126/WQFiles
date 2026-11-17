@@ -131,6 +131,7 @@ validate_app() {
     [[ -f "$app_path/Info.plist" ]] || fail "missing Info.plist in $app_path"
     [[ -x "$app_path/PlugIns/WQJITHelper.appex/WQJITHelper" ]] || fail "missing JIT helper"
     [[ -f "$app_path/Frameworks/StikJIT.framework/StikJIT" ]] || fail "missing StikJIT framework"
+    [[ -f "$app_path/Frameworks/StikJIT.framework/Info.plist" ]] || fail "missing StikJIT framework Info.plist"
     [[ "$(plist_value CFBundleIdentifier "$app_path/PlugIns/WQJITHelper.appex/Info.plist")" == "$EXPECTED_BUNDLE_ID.JITHelper" ]] || \
         fail "JIT helper bundle identifier does not match the app"
     [[ "$(plist_value CFBundleIdentifier "$app_path/Info.plist")" == "$EXPECTED_BUNDLE_ID" ]] || \

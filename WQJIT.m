@@ -244,7 +244,8 @@ static BOOL wq_jit_save_pairing(NSData *data, NSString **errorText)
         ? [NSData dataWithContentsOfURL:url options:0 error:&error] : nil;
     if (scoped) [url stopAccessingSecurityScopedResource];
     id plist = data ? [NSPropertyListSerialization propertyListWithData:data options:0 format:NULL error:&error] : nil;
-    if (![plist isKindOfClass:NSDictionary.class] || ![(NSDictionary *)plist count]) {
+    if (data.length > 1024 * 1024 ||
+        ![plist isKindOfClass:NSDictionary.class] || ![(NSDictionary *)plist count]) {
         [self showError:error.localizedDescription ?: @"Pairing file is invalid or exceeds 1 MB."];
         return;
     }
@@ -282,7 +283,8 @@ static BOOL wq_jit_save_pairing(NSData *data, NSString **errorText)
     if (complete <= self.streamedLineCount) return;
     for (NSUInteger index = self.streamedLineCount; index < complete; index++) {
         NSData *line = [lines[index] dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary *event = line ? [NSJSONSerialization JSONObjectWithData:line options:0 error:nil] : nil;
+        id parsed = line ? [NSJSONSerialization JSONObjectWithData:line options:0 error:nil] : nil;
+        NSDictionary *event = [parsed isKindOfClass:NSDictionary.class] ? parsed : nil;
         NSString *message = [event[@"text"] isKindOfClass:NSString.class] ? event[@"text"] : nil;
         if (message.length) {
             [self.logs addObject:message];
@@ -341,6 +343,17 @@ static BOOL wq_jit_save_pairing(NSData *data, NSString **errorText)
     NSError *error = nil;
     id extension = ((id (*)(id, SEL, NSString *, NSError **))objc_msgSend)(extensionClass, factory, identifier, &error);
     if (!extension) { [self showError:error.localizedDescription ?: @"JIT helper could not start."]; return; }
+    SEL completionSelector = NSSelectorFromString(@"setRequestCompletionBlock:");
+    SEL cancellationSelector = NSSelectorFromString(@"setRequestCancellationBlock:");
+    SEL interruptionSelector = NSSelectorFromString(@"setRequestInterruptionBlock:");
+    SEL beginSelector = NSSelectorFromString(@"beginExtensionRequestWithInputItems:completion:");
+    if (![extension respondsToSelector:completionSelector] ||
+        ![extension respondsToSelector:cancellationSelector] ||
+        ![extension respondsToSelector:interruptionSelector] ||
+        ![extension respondsToSelector:beginSelector]) {
+        [self showError:@"This iOS version does not provide the required JIT helper request methods."];
+        return;
+    }
     NSString *group = wq_app_group();
     NSString *token = NSUUID.UUID.UUIDString;
     self.logURL = group ? [self newLogURLForToken:token group:group] : nil;
@@ -369,16 +382,16 @@ static BOOL wq_jit_save_pairing(NSData *data, NSString **errorText)
         NSDictionary *response = [parsed isKindOfClass:NSDictionary.class] ? parsed : nil;
         dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf finishWithResponse:response error:nil]; });
     };
-    ((void (*)(id, SEL, id))objc_msgSend)(extension, NSSelectorFromString(@"setRequestCompletionBlock:"), complete);
+    ((void (*)(id, SEL, id))objc_msgSend)(extension, completionSelector, complete);
     void (^cancel)(NSUUID *, NSError *) = ^(__unused NSUUID *requestID, NSError *reason) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf finishWithResponse:nil error:reason.localizedDescription ?: @"JIT helper stopped unexpectedly."];
         });
     };
-    ((void (*)(id, SEL, id))objc_msgSend)(extension, NSSelectorFromString(@"setRequestCancellationBlock:"), cancel);
-    ((void (*)(id, SEL, id))objc_msgSend)(extension, NSSelectorFromString(@"setRequestInterruptionBlock:"), ^(__unused NSUUID *requestID) { cancel(nil, nil); });
+    ((void (*)(id, SEL, id))objc_msgSend)(extension, cancellationSelector, cancel);
+    ((void (*)(id, SEL, id))objc_msgSend)(extension, interruptionSelector, ^(__unused NSUUID *requestID) { cancel(nil, nil); });
     ((void (*)(id, SEL, NSArray *, id))objc_msgSend)(extension,
-        NSSelectorFromString(@"beginExtensionRequestWithInputItems:completion:"), @[item], ^(NSUUID *requestID) {
+        beginSelector, @[item], ^(NSUUID *requestID) {
             if (!requestID) cancel(nil, nil);
         });
 }

@@ -110,6 +110,7 @@ set -eu
 app=$2
 mkdir -p "$app/Frameworks/StikJIT.framework" "$app/PlugIns/WQJITHelper.appex"
 printf 'fixture framework\n' > "$app/Frameworks/StikJIT.framework/StikJIT"
+printf '<plist version="1.0"><dict><key>CFBundleExecutable</key><string>StikJIT</string></dict></plist>\n' > "$app/Frameworks/StikJIT.framework/Info.plist"
 printf '<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>cz.kolbi.wqfiles.JITHelper</string></dict></plist>\n' > "$app/PlugIns/WQJITHelper.appex/Info.plist"
 printf '#!/bin/sh\nexit 0\n' > "$app/PlugIns/WQJITHelper.appex/WQJITHelper"
 chmod +x "$app/PlugIns/WQJITHelper.appex/WQJITHelper"
