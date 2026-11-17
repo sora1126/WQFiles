@@ -86,7 +86,9 @@
 	<key>MinimumOSVersion</key>
 	<string>26.0</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Wi-Fi Sharing lets browsers on your network open the folder you share.</string>
+	<string>Wi-Fi Sharing opens folders on your network; JIT Manager finds this device's Remote Pairing service.</string>
+	<key>NSBonjourServices</key>
+	<array><string>_remotepairing._tcp</string></array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

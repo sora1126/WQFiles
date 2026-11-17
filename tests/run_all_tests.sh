@@ -116,7 +116,7 @@ if [[ "${WQ_SKIP_IOS_CHECK:-0}" != 1 ]]; then
     printf '\n== Strict iOS arm64 syntax/link checks ==\n'
     IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
     MIN_OS=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' Info.plist)
-    SOURCES=(WQCore.m WQAccess.m WQScanTask.m WQLocalization.m WQLaunchServices.m WQUI.m WQSharing.m WQApps.m WQCache.m WQPlistEditor.m WQHexViewer.m WQSQLiteViewer.m WQSQLiteSave.m WQHealth.m WQTrash.m WQArchive.m WQSyntax.m WQMediaStream.m WQWebServer.m WQTheme.m main.m)
+    SOURCES=(WQCore.m WQAccess.m WQScanTask.m WQLocalization.m WQLaunchServices.m WQUI.m WQSharing.m WQApps.m WQCache.m WQPlistEditor.m WQHexViewer.m WQSQLiteViewer.m WQSQLiteSave.m WQHealth.m WQTrash.m WQArchive.m WQSyntax.m WQMediaStream.m WQWebServer.m WQTheme.m WQJIT.m main.m)
     FLAGS=(-fobjc-arc -fmodules "-fmodules-cache-path=$OUT/modules-ios" -arch arm64 "-miphoneos-version-min=$MIN_OS" -isysroot "$IOS_SDK" -Wall -Wextra -Werror -O2)
     xcrun --sdk iphoneos clang -fsyntax-only "${FLAGS[@]}" "${SOURCES[@]}" > "$OUT/ios-syntax.log" 2>&1 || {
         cat "$OUT/ios-syntax.log" >&2
@@ -131,7 +131,7 @@ if [[ "${WQ_SKIP_IOS_CHECK:-0}" != 1 ]]; then
 else
     printf '\niOS syntax/link checks explicitly skipped (WQ_SKIP_IOS_CHECK=1).\n'
 fi
-plutil -lint Info.plist entitlements.plist | tee "$OUT/plist-lint.log"
-bash -n build.sh tests/run_all_tests.sh tests/run_tests.sh tests/run_apps_tests.sh \
+plutil -lint Info.plist entitlements.plist jit/Info.plist jit/entitlements.plist | tee "$OUT/plist-lint.log"
+bash -n build.sh jit/build_helper.sh tests/run_all_tests.sh tests/run_tests.sh tests/run_apps_tests.sh \
     tests/run_access_safety_tests.sh tests/run_hex_helpers_tests.sh tests/run_plist_tests.sh tests/run_launchservices_tests.sh tests/run_localization_tests.sh
 printf '\nAll requested regression suites passed. Logs retained in: %s\n' "$OUT"

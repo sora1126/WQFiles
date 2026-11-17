@@ -79,7 +79,7 @@ xcrun --sdk iphoneos clang -fobjc-arc -fmodules -fmodules-cache-path="$OUT/Modul
     -miphoneos-version-min="$MINIMUM_IOS_VERSION" \
     -isysroot "$SDK" -Wall -Wextra -Werror -O2 \
     -framework UIKit -framework Foundation -framework Security -framework UniformTypeIdentifiers \
-    WQCore.m WQAccess.m WQScanTask.m WQLocalization.m WQLaunchServices.m WQUI.m WQSharing.m WQApps.m WQCache.m WQPlistEditor.m WQHexViewer.m WQSQLiteViewer.m WQSQLiteSave.m WQHealth.m WQTrash.m WQArchive.m WQSyntax.m WQMediaStream.m WQWebServer.m WQTheme.m main.m -lsqlite3 -lz -o "$APP/WQFiles"
+    WQCore.m WQAccess.m WQScanTask.m WQLocalization.m WQLaunchServices.m WQUI.m WQSharing.m WQApps.m WQCache.m WQPlistEditor.m WQHexViewer.m WQSQLiteViewer.m WQSQLiteSave.m WQHealth.m WQTrash.m WQArchive.m WQSyntax.m WQMediaStream.m WQWebServer.m WQTheme.m WQJIT.m main.m -lsqlite3 -lz -o "$APP/WQFiles"
 cp Info.plist "$APP/Info.plist"
 # App icon with the iOS 18+ dark and tinted variants (issue #47): a catalog
 # built from icons/ and compiled by actool into Assets.car plus the classic
@@ -122,12 +122,17 @@ if compgen -G "$ROOT/themes/*.wqtheme" >/dev/null; then
     cp "$ROOT"/themes/*.wqtheme "$APP/Themes/"
 fi
 plutil -convert binary1 "$APP/Info.plist"
+bash "${WQJIT_BUILD_SCRIPT:-jit/build_helper.sh}" "$OUT" "$APP"
 codesign -f -s - --entitlements entitlements.plist "$APP"
 
 validate_app() {
     local app_path=$1
     [[ -x "$app_path/WQFiles" ]] || fail "missing executable in $app_path"
     [[ -f "$app_path/Info.plist" ]] || fail "missing Info.plist in $app_path"
+    [[ -x "$app_path/PlugIns/WQJITHelper.appex/WQJITHelper" ]] || fail "missing JIT helper"
+    [[ -f "$app_path/Frameworks/StikJIT.framework/StikJIT" ]] || fail "missing StikJIT framework"
+    [[ "$(plist_value CFBundleIdentifier "$app_path/PlugIns/WQJITHelper.appex/Info.plist")" == "$EXPECTED_BUNDLE_ID.JITHelper" ]] || \
+        fail "JIT helper bundle identifier does not match the app"
     [[ "$(plist_value CFBundleIdentifier "$app_path/Info.plist")" == "$EXPECTED_BUNDLE_ID" ]] || \
         fail "bundle identifier does not match source metadata"
     [[ "$(plist_value CFBundleShortVersionString "$app_path/Info.plist")" == "$EXPECTED_VERSION" ]] || \

@@ -5,6 +5,7 @@
 //
 
 #import "WQApps.h"
+#import "WQJIT.h"
 #import "WQDir.h"
 #import "WQUI.h"
 #import "WQScanTask.h"
@@ -1035,6 +1036,8 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
         actionProvider:^UIMenu *(NSArray<UIMenuElement *> *__unused suggested) {
         NSMutableArray *actions = [NSMutableArray new];
         if (app.bundleID.length) {
+            [actions addObject:[UIAction actionWithTitle:@"Enable JIT" image:[UIImage systemImageNamed:@"bolt.fill"] identifier:nil
+                handler:^(UIAction *__unused a) { wq_open_jit_for_bundle_id(weakSelf, app.bundleID); }]];
             [actions addObject:[UIAction actionWithTitle:WQLocalizedNullable(@"Copy Bundle ID") image:[UIImage systemImageNamed:@"tag"] identifier:nil
                                                   handler:^(UIAction *__unused a) { UIPasteboard.generalPasteboard.string = app.bundleID; }]];
         }
@@ -1164,6 +1167,9 @@ static void WQAppScanWatch(WQScanCancellation *cancellation, NSUInteger lastSeri
     }
     UIAlertController *sheet = wq_alert_controller(WQVerbatim(app.name), [NSString stringWithFormat:@"%@\n%@", app.bundleID,
                  app.sizeKnown ? WQLocalizedFormat(@"%@ of data", wq_size_text(app.bytes)) : WQLocalized(@"size unavailable")], UIAlertControllerStyleActionSheet);
+    [sheet addAction:[UIAlertAction actionWithTitle:@"Enable JIT" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        wq_open_jit_for_bundle_id(self, app.bundleID);
+    }]];
     [sheet addAction:wq_alert_action(WQLocalized(@"Back Up Data"), UIAlertActionStyleDefault, ^(UIAlertAction *__unused a) {
         [self backUp:app then:nil];
     })];

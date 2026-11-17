@@ -105,6 +105,16 @@ set -eu
 exec /usr/bin/unzip "$@"
 '''
 
+FAKE_JIT_BUILDER = r'''#!/bin/sh
+set -eu
+app=$2
+mkdir -p "$app/Frameworks/StikJIT.framework" "$app/PlugIns/WQJITHelper.appex"
+printf 'fixture framework\n' > "$app/Frameworks/StikJIT.framework/StikJIT"
+printf '<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>cz.kolbi.wqfiles.JITHelper</string></dict></plist>\n' > "$app/PlugIns/WQJITHelper.appex/Info.plist"
+printf '#!/bin/sh\nexit 0\n' > "$app/PlugIns/WQJITHelper.appex/WQJITHelper"
+chmod +x "$app/PlugIns/WQJITHelper.appex/WQJITHelper"
+'''
+
 
 class StagedBuildTests(unittest.TestCase):
     def _fake_environment(self, directory: Path):
@@ -125,6 +135,9 @@ class StagedBuildTests(unittest.TestCase):
         environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
         environment["FAKE_SDK"] = str(fake_sdk)
         environment["WQ_SKIP_PREFLIGHT"] = "1"
+        helper = directory / "fake-jit-builder.sh"
+        helper.write_text(FAKE_JIT_BUILDER, encoding="utf-8")
+        environment["WQJIT_BUILD_SCRIPT"] = str(helper)
         return environment
 
     def test_default_output_stays_in_project(self):

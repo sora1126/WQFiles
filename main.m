@@ -19,6 +19,7 @@
 #import "WQSharing.h"
 #import "WQDir.h"
 #import "WQApps.h"
+#import "WQJIT.h"
 #import "WQCache.h"
 #import "WQCore.h"
 #import "WQAccessSafety.h"
@@ -5748,11 +5749,13 @@ static NSString *const kWQTroubleshootingFooter =
     WQPrismHomeViewController *home = [WQPrismHomeViewController new];
     WQAppsViewController *apps = [WQAppsViewController new];
     WQCacheCleanerViewController *clean = [WQCacheCleanerViewController new];
+    WQJITViewController *jit = [WQJITViewController new];
     WQPrismVaultViewController *vault = [WQPrismVaultViewController new];
 
     WQNavigationController *homeNav = [[WQNavigationController alloc] initWithRootViewController:home];
     WQNavigationController *appsNav = [[WQNavigationController alloc] initWithRootViewController:apps];
     WQNavigationController *cleanNav = [[WQNavigationController alloc] initWithRootViewController:clean];
+    WQNavigationController *jitNav = [[WQNavigationController alloc] initWithRootViewController:jit];
     WQNavigationController *vaultNav = [[WQNavigationController alloc] initWithRootViewController:vault];
 
     homeNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:WQLocalizedNullable(@"Home")
@@ -5761,10 +5764,12 @@ static NSString *const kWQTroubleshootingFooter =
         image:[UIImage systemImageNamed:@"square.grid.3x3.fill"] tag:1];
     cleanNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:WQLocalizedNullable(@"Clean")
         image:[UIImage systemImageNamed:@"sparkles"] tag:2];
+    jitNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"JIT"
+        image:[UIImage systemImageNamed:@"bolt.fill"] tag:3];
     vaultNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:WQLocalizedNullable(@"Backups")
-        image:[UIImage systemImageNamed:@"clock.arrow.circlepath"] tag:3];
+        image:[UIImage systemImageNamed:@"clock.arrow.circlepath"] tag:4];
 
-    self.viewControllers = @[homeNav, appsNav, cleanNav, vaultNav];
+    self.viewControllers = @[homeNav, appsNav, cleanNav, jitNav, vaultNav];
     self.selectedIndex = 0;
     self.tabBar.tintColor = wq_theme_accent();
     __weak typeof(self) weakSelf = self;

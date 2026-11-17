@@ -1,0 +1,94 @@
+diff --git a/Sources/JITSession.swift b/Sources/JITSession.swift
+index 1b20dcb..116ee29 100644
+--- a/Sources/JITSession.swift
++++ b/Sources/JITSession.swift
+@@ -29,6 +29,60 @@ final class JITSession {
+         self.configuration = configuration
+     }
+ 
++    func installedApplications() throws -> [StikJIT.InstalledApplication] {
++        let tunnel = try makeTunnel()
++        defer { tunnel.free() }
++        var service: OpaquePointer?
++        try IdeviceFFI.check("failed to connect app service") {
++            app_service_connect_rsd(tunnel.adapter, tunnel.handshake, &service)
++        }
++        guard let service else { throw StikJITError.device(code: -1, subCode: 0, message: "App service unavailable") }
++        defer { app_service_free(service) }
++
++        var apps: UnsafeMutablePointer<AppListEntryC>?
++        var appCount: UInt = 0
++        try IdeviceFFI.check("failed to list installed apps") {
++            app_service_list_apps(service, 1, 1, 0, 0, 1, &apps, &appCount)
++        }
++        defer { if let apps { app_service_free_app_list(apps, appCount) } }
++
++        var processes: UnsafeMutablePointer<ProcessTokenC>?
++        var processCount: UInt = 0
++        try IdeviceFFI.check("failed to list running processes") {
++            app_service_list_processes(service, &processes, &processCount)
++        }
++        defer { if let processes { app_service_free_process_list(processes, processCount) } }
++
++        func filePath(_ raw: String) -> String {
++            guard let url = URL(string: raw), url.isFileURL else { return raw }
++            return url.path
++        }
++        var running: [(String, Int32)] = []
++        if let processes {
++            for index in 0..<Int(processCount) {
++                let process = processes[index]
++                guard let raw = process.executable_url.flatMap({ String(validatingUTF8: $0) }),
++                      process.pid > 1, process.pid <= UInt32(Int32.max) else { continue }
++                running.append((filePath(raw), Int32(process.pid)))
++            }
++        }
++        var result: [StikJIT.InstalledApplication] = []
++        if let apps {
++            for index in 0..<Int(appCount) {
++                let app = apps[index]
++                guard let bundleID = app.bundle_identifier.flatMap({ String(validatingUTF8: $0) }),
++                      !bundleID.isEmpty else { continue }
++                let name = app.name.flatMap({ String(validatingUTF8: $0) }) ?? bundleID
++                let path = app.path.flatMap({ String(validatingUTF8: $0) }).map(filePath)
++                let pid = path.flatMap { bundlePath in
++                    running.first { $0.0.hasPrefix(bundlePath + "/") }?.1
++                }
++                result.append(.init(name: name, bundleIdentifier: bundleID, pid: pid))
++            }
++        }
++        return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
++    }
++
+     func enableJIT(targetPID: Int32,
+                    script: StikJIT.Script,
+                    forceScript: Bool,
+diff --git a/Sources/StikJIT.swift b/Sources/StikJIT.swift
+index ddad7b1..d413464 100644
+--- a/Sources/StikJIT.swift
++++ b/Sources/StikJIT.swift
+@@ -2,6 +2,24 @@ import Foundation
+ 
+ public enum StikJIT {
+ 
++    public struct InstalledApplication: Sendable {
++        public let name: String
++        public let bundleIdentifier: String
++        public let pid: Int32?
++
++        public init(name: String, bundleIdentifier: String, pid: Int32?) {
++            self.name = name
++            self.bundleIdentifier = bundleIdentifier
++            self.pid = pid
++        }
++    }
++
++    public static func installedApplications(pairingFile: URL,
++                                             configuration: Configuration = .default) throws -> [InstalledApplication] {
++        try JITSession(pairingFilePath: pairingFile.path,
++                       configuration: configuration.resolved()).installedApplications()
++    }
++
+     public enum Script: Sendable {
+ 
+         case universal

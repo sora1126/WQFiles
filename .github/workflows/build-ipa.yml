@@ -1,0 +1,29 @@
+name: Build WQFiles IPA
+
+on:
+  push:
+    branches: [main, feat/builtin-stikjit-manager]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build and validate IPA
+        run: bash build.sh
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: WQFiles-JIT-IPA
+          path: WQFiles.ipa
+          if-no-files-found: error

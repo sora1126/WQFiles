@@ -70,6 +70,14 @@ new files.
 
 ## Tools
 
+- **JIT Manager**: the WQ Prism tab between Clean and Backups imports this
+  device's `.mobiledevicepairing` file, lists installed apps through the
+  bundled StikJIT helper, and runs **Enable JIT** for a selected running app.
+  Apps also offers **Enable JIT** in its action menu. The pairing data stays
+  in this device's Keychain. Developer Mode, LocalDevVPN, a compatible target
+  app, and correct signing are required. The JIT integration has not yet been
+  verified on a physical iOS 26 or 27 device; see [JIT integration and device
+  validation](JIT_INTEGRATION.md) before relying on it.
 - **Apps**: every app with its data size. Back up an app's **Documents and
   Library**, restore the latest backup (also from **App Backups**: long-press the app → Restore Backup), clear its data (Documents, Library,
   and tmp), open its folder, or share a backup as a ZIP over AirDrop, Files,
